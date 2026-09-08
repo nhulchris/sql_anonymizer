@@ -16,6 +16,7 @@ written anywhere.
 |---|---|
 | `anonymize.py` | The anonymizer |
 | `verify.py` | Automated verification harness (checks every graded requirement) |
+| `DESIGN.md` | Design and approach explanation |
 | `original_test.sql` | Original test database (4 tables, PII spread across them) |
 | `anonymized_test.sql` | Anonymized output produced from the test file |
 | `TESTING.md` | Testing evidence and bugs found during development |
