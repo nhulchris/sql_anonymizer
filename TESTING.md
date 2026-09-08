@@ -21,6 +21,7 @@ proves it:
 | 7 | Product names, prices, dates, statuses, IDs, foreign keys | Non-PII must pass through untouched |
 | 8 | Two different customers both named 'John' | Same value maps consistently; distinct people stay distinct |
 | 9 | Addresses as split columns (customers) and as one-line strings (employees, orders) | Component-wise address consistency |
+| 10 | Ticket 9004 uses `INSERT INTO support_tickets VALUES (...)` with no column list | Columns resolved from CREATE TABLE order (the syntax used in the assignment spec's own example) |
 
 ## Automated verification
 
@@ -30,7 +31,7 @@ it works on any input/output pair, not just the bundled test file. Final run:
 
 ```
 $ python3 verify.py original_test.sql anonymized_test.sql
-[PASS] Same number of INSERT values                                    (128 vs 128)
+[PASS] Same number of INSERT values                                    (134 vs 134)
 [PASS] Same table/column layout
 [PASS] Non-PII values unchanged (ids, prices, dates, products...)
 [PASS] Every PII value replaced
@@ -39,8 +40,8 @@ $ python3 verify.py original_test.sql anonymized_test.sql
 [PASS] Distinct originals get distinct replacements
 [PASS] Phone formats preserved (punctuation skeleton identical)
 [PASS] Replacement emails are valid email shapes
-[PASS] original file executes as valid SQL (sqlite3)                   (row counts: {'customers': 5, 'employees': 3, 'orders': 4, 'support_tickets': 3})
-[PASS] anonymized file executes as valid SQL (sqlite3)                 (row counts: {'customers': 5, 'employees': 3, 'orders': 4, 'support_tickets': 3})
+[PASS] original file executes as valid SQL (sqlite3)                   (row counts: {'customers': 5, 'employees': 3, 'orders': 4, 'support_tickets': 4})
+[PASS] anonymized file executes as valid SQL (sqlite3)                 (row counts: {'customers': 5, 'employees': 3, 'orders': 4, 'support_tickets': 4})
 
 11/11 checks passed
 ```
@@ -57,9 +58,9 @@ Notable checks:
 
 ## Bugs found and fixed during testing
 
-Three real defects were caught by testing during development — each one
-produced a fix and, where the harness had the same blind spot, a hardened
-check.
+Four real defects were caught during development — each one produced a fix,
+a regression test case, and, where the harness had the same blind spot, a
+hardened check.
 
 **1. `product_name` classified as a person name.** The first name-detection
 pattern matched any column ending in `_name`, so 'Wireless Mouse' became
@@ -81,6 +82,15 @@ data).
 still survived in comments: regex `\b` does not match before `(`, so both
 the sweep and the leak check silently skipped them. Fix: `(?<!\w) ... (?!\w)`
 lookarounds in the sweep, the forbidden-token screen, and the verifier.
+
+**4. INSERT statements without a column list were skipped entirely.** The
+INSERT matcher required an explicit column list, but
+`INSERT INTO customers VALUES (...)` — the exact syntax in the assignment's
+own example — is legal SQL, and such statements passed through with their
+PII intact. Caught by auditing the parser against the assignment spec. Fix:
+the column list is now optional, falling back to the CREATE TABLE column
+order; test case 10 covers it and confirms the no-column-list row still
+receives the same consistent replacements as the rest of the file.
 
 ## Manual spot-checks
 

@@ -259,8 +259,10 @@ def collect_tokens(value, category, tokens):
 CREATE_RE = re.compile(
     r"CREATE\s+TABLE\s+[`\"]?(\w+)[`\"]?\s*\((.*?)\)\s*;", re.I | re.S
 )
+# The column list is optional: 'INSERT INTO t VALUES (...)' uses the
+# CREATE TABLE column order instead.
 INSERT_RE = re.compile(
-    r"INSERT\s+INTO\s+[`\"]?(\w+)[`\"]?\s*\(([^)]*)\)\s*VALUES\s*", re.I
+    r"INSERT\s+INTO\s+[`\"]?(\w+)[`\"]?\s*(?:\(([^)]*)\))?\s*VALUES\s*", re.I
 )
 
 
@@ -355,7 +357,12 @@ def process_insert(match, sql_text, schemas, handler):
     """Walk the VALUES section of one INSERT statement, applying handler
     to every PII value. Returns (rewritten_statement, end_index)."""
     table = match.group(1).lower()
-    columns = [c.strip().strip('`"').lower() for c in match.group(2).split(",")]
+    if match.group(2) is not None:
+        columns = [c.strip().strip('`"').lower()
+                   for c in match.group(2).split(",")]
+    else:
+        # no column list in the INSERT: use CREATE TABLE column order
+        columns = list(schemas.get(table, {}).keys())
     categories = [schemas.get(table, {}).get(c) for c in columns]
 
     out = [sql_text[match.start(): match.end()]]

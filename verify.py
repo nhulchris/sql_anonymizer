@@ -37,7 +37,11 @@ def extract_rows(sql_text):
         if not m:
             break
         table = m.group(1).lower()
-        columns = [c.strip().strip('`"').lower() for c in m.group(2).split(",")]
+        if m.group(2) is not None:
+            columns = [c.strip().strip('`"').lower()
+                       for c in m.group(2).split(",")]
+        else:
+            columns = list(schemas.get(table, {}).keys())
         # reuse the tokenizer by scanning tuples the same way anonymize does
         i = m.end()
         in_quote = False

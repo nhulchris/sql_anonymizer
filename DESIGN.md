@@ -3,6 +3,31 @@
 ICS 499 — Assignment 2 (SQL Data Anonymization)
 Author: Chris Nhul
 
+## Research: choosing an anonymization technique
+
+Data-protection literature distinguishes several techniques, and most of
+them fail this assignment's requirements:
+
+- **Data masking** (replacing values with `XXXX` or partial redaction)
+  destroys realism — the spec explicitly rules it out.
+- **Hashing** produces consistent one-way values, but `8f3a9c...` is not a
+  realistic name, and hashes of low-entropy data (names, phones) are
+  reversible by dictionary attack anyway.
+- **Tokenization** substitutes values with tokens backed by a lookup vault —
+  designed to be reversible, which contradicts the one-way requirement, and
+  tokens are not realistic values.
+- **Pseudonymization** replaces identifiers with consistent pseudonyms. This
+  matches the consistency requirement, but classical pseudonyms (ID-like
+  labels) are not realistic either.
+- **Synthetic data generation** produces realistic artificial values but, by
+  itself, has no notion of consistency — the same input can yield different
+  outputs.
+
+The chosen approach combines the last two: *consistent pseudonymization
+where every pseudonym is a synthetic value*. A mapping table provides
+pseudonymization's consistency guarantee; Faker provides synthetic data's
+realism; keeping the mapping only in memory provides the one-way property.
+
 ## Problem framing
 
 The tool must take a SQL dump containing real PII and produce an equivalent
@@ -83,6 +108,17 @@ Emails use Faker's default RFC 2606 reserved domains (`example.com/.org/.net`)
 rather than real providers. Real domains would look marginally more
 authentic but could produce an address that actually belongs to someone —
 the wrong failure mode for a privacy tool.
+
+A related, deliberate decision: synthetic emails are *not* derived from the
+person's synthetic name (`john.obrien@gmail.com` does not become
+`julie.bullock@example.org`). Deriving emails from names would look slightly
+more realistic but couples two categories: it requires reliably knowing
+which name row owns which email (fragile across schemas — an email column
+and a name column in different tables have no declared relationship), and a
+wrong linkage would silently break consistency. Independent per-category
+mapping keeps every guarantee provable. The consistency requirement is
+still met — each original email maps to exactly one synthetic email
+everywhere it appears.
 
 ## Parsing: why not a SQL parser library
 

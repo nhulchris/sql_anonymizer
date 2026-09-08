@@ -17,6 +17,8 @@
 --      INSERTs (employees).
 --   7. Non-PII that must NOT change: product names, prices,
 --      dates, order statuses, foreign keys, ticket text ids.
+--   8. INSERT with no column list (last support_tickets row):
+--      columns must come from the CREATE TABLE order.
 -- ============================================================
 
 CREATE TABLE customers (
@@ -86,3 +88,5 @@ INSERT INTO support_tickets (ticket_id, customer_email, contact_phone, subject, 
 (9001, 'john.obrien@gmail.com', '(612) 555-0143', 'Order 5001 arrived with one mouse missing', '2026-07-18', TRUE),
 (9002, 'aisha.w@gmail.com', '+1-651-555-0111', 'Cannot reset account password', '2026-08-05', FALSE),
 (9003, 'dchen88@outlook.com', '6125550172', 'Keyboard key sticking, requesting replacement', '2026-08-15', FALSE);
+
+INSERT INTO support_tickets VALUES (9004, 'maria.gonzalez@yahoo.com', '612-555-0198', 'Employee discount not applied to order', '2026-08-20', FALSE);
